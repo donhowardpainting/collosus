@@ -30,7 +30,7 @@ export class Sim {
       },
     };
     const m = new Machine(this.phys, design, {
-      scene: this.view.scene, makeMesh: this.view.makeMesh, hooks,
+      scene: this.view.scene, makeMesh: opts.enemy ? this.view.makeEnemyMesh : this.view.makeMesh, hooks,
       team: opts.isPlayer ? 0 : this.nextTeam++, ...opts,
     });
     m.input = newInput();

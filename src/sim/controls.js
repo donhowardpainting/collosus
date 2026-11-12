@@ -31,6 +31,8 @@ export function applyControls(machine, input, dt, weapons) {
   const keys = live ? input.keys : EMPTY;
   const power = machine.power;
   let effort = 0;
+  // at speed, steering slows the inside track; from a standstill it counter-rotates to pivot
+  const steer = fwd !== 0 ? 0.75 : 1.2;
   // shared gait clock: runs while driving, then coasts on to the next half-cycle so legs park upright
   const g = machine.gait || (machine.gait = { t: 0, f: 0, tn: 0 });
   const k = Math.min(1, dt * 5);
@@ -50,12 +52,12 @@ export function applyControls(machine, input, dt, weapons) {
     const key = (keys.has(cfg.keyPos) ? 1 : 0) - (keys.has(cfg.keyNeg) ? 1 : 0);
     if (m.kind === 'spin') {
       let cmd = 0;
-      if (cfg.mode === 'drive') cmd = clamp(fwd + turn * part.side * 1.2, -1, 1) * part.driveSign;
+      if (cfg.mode === 'drive') cmd = clamp(fwd + turn * part.side * steer, -1, 1) * part.driveSign;
       else if (cfg.mode === 'auto') cmd = live ? 1 : 0;
       else if (cfg.mode === 'keys') cmd = key;
       if (cfg.mode === 'gait' && power > 0) {
         const sgn = (part.driveSign || 1) * dir, rate = cfg.speed / 0.6;
-        const stride = clamp(g.f + g.tn * part.side * 1.2, -1, 1);
+        const stride = clamp(g.f + g.tn * part.side * (Math.abs(g.f) > 0.3 ? 0.75 : 1.2), -1, 1);
         const ph = g.t * rate + ((cfg.phase || 0) * Math.PI) / 180, amp = cfg.amp ?? 0.55;
         const des = legAngle(ph, stride, amp);
         const vel = (legAngle(ph + 0.02, stride, amp) - des) / 0.02 * GAIT_RATE * rate * (Math.abs(fwd) + Math.abs(turn) > 0.01 ? 1 : 0);

@@ -1,0 +1,22 @@
+// Quick visual capture of a few scenes. Usage: node tests/shots.mjs [url]
+import { createRequire } from 'node:module';
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || 'playwright');
+const url = process.argv[2] || 'http://localhost:4173/';
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage({ viewport: { width: 1440, height: 810 }, deviceScaleFactor: 1 });
+page.on('pageerror', (e) => console.log('pageerror', e.message));
+const shot = (n) => page.screenshot({ path: `shots/${n}.png` });
+const simT = (t) => page.waitForFunction((t) => window.__game.simTime > t, t, { timeout: 180000 });
+await page.goto(url);
+await page.waitForFunction(() => window.__game?.ui, null, { timeout: 60000 });
+await page.waitForTimeout(1200); await shot('a-title');
+await page.click('#t-go'); await simT(1.2); await shot('b-activate');
+await simT(5); await shot('c-walk'); await simT(9.5); await shot('d-impact'); await simT(13); await shot('e-wreck');
+await page.keyboard.press('KeyB'); await page.waitForTimeout(500);
+await page.click('#d-load'); await page.click('#m-ex .item:has-text("Fortress") button');
+await page.click('#ch-tabs button:has-text("Iron Arena")'); await page.waitForTimeout(600); await shot('f-workshop');
+await page.click('#b-activate'); await page.waitForFunction(() => window.__game.challenge.enemies.length > 0, null, { timeout: 120000 });
+await page.keyboard.down('KeyW'); await page.keyboard.down('Space'); await simT(9); await shot('g-arena'); await simT(14); await shot('h-arena2');
+const fps = await page.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 > 2000) res(n / 2); else requestAnimationFrame(f); }; f(); }));
+console.log('fps (software GL)', fps);
+await browser.close();

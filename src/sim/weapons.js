@@ -12,7 +12,7 @@ export class Weapons {
   fire(machine, part) {
     const { R, world } = this.phys;
     const w = part.def.weapon, piece = part.pieces[0], body = piece.rec.body;
-    const dir = new Vector3(0, 1, 0).applyQuaternion(piece.lq).applyQuaternion(machine.partQuat(part, _q)).normalize();
+    const dir = (w.kind === 'bomb' ? new Vector3(0, 0.77, 0.64) : new Vector3(0, 1, 0)).applyQuaternion(piece.lq).applyQuaternion(machine.partQuat(part, _q)).normalize();
     const pos = machine.pieceWorld(piece, piece.lp.clone()).addScaledVector(dir, w.kind === 'cannon' ? 1.7 : 1.0);
     const bv = body.linvel();
     const r = w.kind === 'cannon' ? 0.22 : 0.34;

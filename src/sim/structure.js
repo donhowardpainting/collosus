@@ -27,7 +27,7 @@ export class Structure {
     const vol = half[0] * half[1] * half[2] * 8;
     const el = {
       body, col, half, mat, hp: m.hp * (0.6 + 0.25 * vol) * (extra.hpMul || 1), dead: false, toppled: false,
-      home: new Vector3(...pos), mesh: null, value: extra.value || 10, core: !!extra.core,
+      home: new Vector3(...pos), mesh: null, pv: new Float32Array(6), value: extra.value || 10, core: !!extra.core,
     };
     el.maxHp = el.hp;
     el.mesh = this.opts.makeMesh ? this.opts.makeMesh(el) : null;
@@ -55,8 +55,9 @@ export class Structure {
   update() {
     for (const el of this.els) {
       if (el.dead) continue;
-      if (el.body.isSleeping() && el.synced) continue;
-      const t = el.body.translation(), r = el.body.rotation();
+      if (el.body.isSleeping() && el.synced) { el.pv.fill(0); continue; }
+      const t = el.body.translation(), r = el.body.rotation(), v = el.body.linvel(), w = el.body.angvel();
+      el.pv[0] = v.x; el.pv[1] = v.y; el.pv[2] = v.z; el.pv[3] = w.x; el.pv[4] = w.y; el.pv[5] = w.z;
       if (el.mesh) { el.mesh.position.set(t.x, t.y, t.z); el.mesh.quaternion.set(r.x, r.y, r.z, r.w); }
       el.synced = true;
       if (!el.toppled && (Math.abs(t.x - el.home.x) + Math.abs(t.y - el.home.y) + Math.abs(t.z - el.home.z) > 1.6)) this._topple(el);

@@ -89,6 +89,8 @@ const fmt = (r) => `dz=${r.dz.toFixed(1)} dx=${r.dx.toFixed(1)} tilt=${(r.maxTil
   check('example strider turns', f.z < 0.9, `fwd=${f.x.toFixed(2)},${f.z.toFixed(2)} ${fmt(r)}`);
   // wow moment: strider walks into a tower and scatters it
   let st;
+  r = run(sd, 4, (m) => { m.cruise = false; }, (sim) => { st = sim.addStructure(); buildTower(st, 0, 26, 4, 3, 'wood'); });
+  check('an untouched tower stands on its own', st.progress() === 0 && st.els.every((e) => !e.dead), `toppled=${(st.progress() * 100).toFixed(0)}%`);
   r = run(sd, 16, () => {}, (sim) => { st = sim.addStructure(); buildTower(st, 0, 26, 4, 3, 'wood'); });
   check('strider demolishes a tower', st.progress() > 0.5, `toppled=${(st.progress() * 100).toFixed(0)}% ${fmt(r)}`);
 }

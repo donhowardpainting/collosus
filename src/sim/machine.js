@@ -298,6 +298,11 @@ export class Machine {
     const v = rec.body.linvel();
     return out.set(v.x, v.y, v.z);
   }
+  // Can it still move under its own power?
+  mobile() {
+    if (!this.alive || this.power <= 0) return false;
+    return this.parts.some((p) => p.def.motor && !p.dead && !p.detached && p.joint && (p.cfg.mode === 'drive' || p.cfg.mode === 'gait'));
+  }
   mainBody() { return this.control?.pieces[0].rec?.body || null; }
   integrity() {
     let hp = 0;

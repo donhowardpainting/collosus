@@ -8,10 +8,18 @@ const THRESHOLD = 3.2;  // m/s of sudden velocity change that parts shrug off
 const PER_MS = 13;      // hit points per m/s beyond the threshold
 const _p = new Vector3();
 
-// Sudden velocity change implied by a contact force, shared across the rigid assembly it acts on.
+// How violent was this contact for the thing that was hit, in m/s of sudden velocity change?
+// Machine parts: the contact impulse spread over the rigid assembly it acts on (immune to
+// motor-driven accelerations). Loose structure elements: their measured change in velocity
+// across the step (immune to static loads from whatever is stacked on top of them).
 function severity(force, me, col) {
+  if (me.kind === 'struct') {
+    const el = me.el, v = el.body.linvel(), w = el.body.angvel(), p = el.pv;
+    const r = Math.max(el.half[0], el.half[1], el.half[2]) * 0.5;
+    return Math.hypot(v.x - p[0], v.y - p[1], v.z - p[2]) + Math.hypot(w.x - p[3], w.y - p[4], w.z - p[5]) * r;
+  }
   let mass;
-  if (me.kind === 'piece' && !me.piece.rec?.loose) mass = me.machine.liveMass || 1;
+  if (!me.piece.rec?.loose) mass = me.machine.liveMass || 1;
   else { const b = col.parent(); mass = b ? b.mass() : 1; }
   return (force * DT) / Math.max(0.5, mass);
 }
@@ -23,7 +31,7 @@ export function hurt(owner, amount, pos, source) {
   if (!owner || amount <= 0) return;
   if (owner.kind === 'piece') {
     if (source && source.machine === owner.machine) return;
-    owner.machine.damagePart(owner.part, amount, pos);
+    owner.machine.damagePart(owner.part, source && owner.part.def.mat === 'armor' ? amount * 0.5 : amount, pos);
     if (source) owner.machine.lastHitBy = source.machine;
   } else if (owner.kind === 'struct') owner.structure.damage(owner.el, amount, pos);
 }
@@ -47,9 +55,10 @@ export function processImpacts(phys, sim) {
       if (me.kind === 'piece' && me.part.dead) continue;
       const col = world.getCollider(h);
       if (!col) continue;
-      const sev = severity(force, me, col);
+      // impact weapons concentrate the blow: they multiply how hard the hit lands
+      const sev = severity(force, me, col) * dealOf(other);
       if (sev <= THRESHOLD) continue;
-      const dmg = (sev - THRESHOLD) * PER_MS * dealOf(other) * takeOf(me);
+      const dmg = (sev - THRESHOLD) * PER_MS * takeOf(me);
       const key = me.kind === 'piece' ? me.part : me.el;
       const cur = hits.get(key);
       if (!cur || cur.dmg < dmg) {
