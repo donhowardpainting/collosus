@@ -1,0 +1,31 @@
+{
+  "name": "colossus-construction",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node tests/headless.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/donhowardpainting/collosus.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/donhowardpainting/collosus/issues"
+  },
+  "homepage": "https://github.com/donhowardpainting/collosus#readme",
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8"
+  },
+  "type": "module",
+  "private": true
+}
