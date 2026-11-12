@@ -1,6 +1,5 @@
 // Game bootstrap and state machine: title → workshop ⇄ simulation.
 import * as THREE from 'three';
-import RAPIER from '@dimforge/rapier3d-compat';
 import { World, ARENA_R } from './render/scene.js';
 import { FX } from './render/fx.js';
 import { Sound } from './audio/audio.js';
@@ -14,11 +13,14 @@ import { CHALLENGES } from './game/challenges.js';
 import { EXAMPLES } from './game/examples.js';
 import { Storage } from './storage.js';
 
+let RAPIER;
 const _v = new THREE.Vector3(), _f = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Quaternion();
 const MAT_COLOR = { wood: 0x9a6a3c, steel: 0x8d949a, stone: 0x8d8478, armor: 0x4a5560, rubber: 0x222222 };
 
 class Game {
   async init() {
+    // the physics engine (WASM) is the heaviest download: load it as its own chunk
+    RAPIER = (await import('@dimforge/rapier3d-compat')).default;
     await RAPIER.init();
     Storage.load();
     this.world = new World(document.getElementById('c'));

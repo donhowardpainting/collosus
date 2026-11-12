@@ -125,5 +125,35 @@ const fmt = (r) => `dz=${r.dz.toFixed(1)} dx=${r.dx.toFixed(1)} tilt=${(r.maxTil
   m3.input.keys.add('Space'); sim3.step(); m3.input.keys.clear();
   check('cannon fires a projectile', sim3.weapons.list.length === 1);
 }
+// 5. Every mechanical joint type stays stable and does its job.
+{
+  const base = () => { const d = new Design(); d.add('platform', [0, 1, 0], oriFor(UP)); d.add('power_core', [0, 2, -1], oriFor(UP)); d.add('control', [0, 2, 0], oriFor(UP));
+    for (const x of [2, -2]) for (const z of [1, -1]) d.add('wheel', [x, 1, z], oriFor(x > 0 ? PX : NX)); return d; };
+  const finite = (m) => m.parts.every((p) => p.dead || Number.isFinite(m.partPos(p).y) && Math.abs(m.partPos(p).y) < 50);
+  // servo arm raised with a key
+  let d = base(); d.add('servo', [0, 2, 1], oriFor(UP), { mode: 'keys', keyPos: 'KeyE', keyNeg: 'KeyQ' }); d.add('steel_beam', [0, 3, 1], oriFor(UP));
+  let r = run(d, 4, (m, t) => { m.input.fwd = 0; if (t > 1) m.input.keys.add('KeyE'); });
+  let arm = r.m.parts.find((p) => p.type === 'steel_beam'), tip = r.m.partPos(arm), hub = r.m.partPos(r.m.parts.find((p) => p.type === 'servo'));
+  check('servo hinge swings an arm on key press', Math.abs(tip.z - hub.z) > 0.8 && finite(r.m) && r.lost === 0, `arm offset z=${(tip.z - hub.z).toFixed(2)} y=${(tip.y - hub.y).toFixed(2)}`);
+  // free hinge: a trailer arm hangs and swings without blowing up
+  d = base(); d.add('hinge', [0, 1, -2], oriFor([0, 0, -1])); d.add('steel_beam', [0, 1, -3], oriFor([0, 0, -1])); d.add('maul', [0, 1, -6], 0);
+  r = run(d, 6);
+  check('free hinge tows a load', r.dz > 15 && finite(r.m) && r.lost === 0, fmt(r));
+  // spring suspension between chassis and an axle block
+  d = new Design(); d.add('platform', [0, 2, 0], oriFor(UP)); d.add('power_core', [0, 3, -1], oriFor(UP)); d.add('control', [0, 3, 0], oriFor(UP));
+  for (const x of [1, -1]) for (const z of [1, -1]) { d.add('spring', [x, 1, z], oriFor(DOWN)); d.add('steel_block', [x, 0, z], 0); d.add('wheel', [x * 2, 0, z], oriFor(x > 0 ? PX : NX)); }
+  let a = analyze(d);
+  r = run(d, 6);
+  check('sprung car drives on its suspension', r.dz > 20 && finite(r.m) && r.lost === 0 && a.bodies === 9, `bodies=${a.bodies} ${fmt(r)}`);
+  // rotor turret on custom keys
+  d = base(); d.add('rotor', [0, 2, 1], oriFor(UP), { mode: 'keys', speed: 0.3 }); d.add('cannon', [0, 3, 1], oriFor(PZ));
+  r = run(d, 3, (m) => { m.input.fwd = 0; m.input.keys.add('KeyE'); });
+  const cq = r.m.partQuat(r.m.parts.find((p) => p.type === 'cannon')), bq = r.m.partQuat(r.m.control);
+  check('rotor turret turns on custom keys', Math.abs(cq.dot(bq)) < 0.98 && finite(r.m), `quat dot=${cq.dot(bq).toFixed(2)}`);
+  // jammed joint is detected
+  d = base(); d.add('rotor', [0, 2, 1], oriFor(PZ)); d.add('steel_block', [0, 2, 2], 0); d.add('steel_block', [0, 1, 2], 0);
+  check('jammed joint is reported', analyze(d).jammed.length === 1);
+  // overloaded joint: partQuat/cannon uses head piece
+}
 console.log(failed ? `\n${failed} FAILED` : '\nALL PASSED');
 process.exit(failed ? 1 : 0);
